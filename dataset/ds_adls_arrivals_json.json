@@ -1,0 +1,41 @@
+{
+	"name": "ds_adls_arrivals_json",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls_json",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"ingestDate": {
+				"type": "string"
+			},
+			"hour": {
+				"type": "string"
+			},
+			"busId": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Sink datasets"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "bus_@{dataset().busId}.json",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "data-zone/raw/arrivals/@{dataset().ingestDate}/@{dataset().hour}",
+					"type": "Expression"
+				},
+				"fileSystem": "tfl-dev"
+			}
+		},
+		"schema": {}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,32 @@
+{
+	"name": "ds_adls_stop_points_json",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls_json",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"page": {
+				"type": "int"
+			}
+		},
+		"folder": {
+			"name": "Sink datasets"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "stop_points_page_@{dataset().page}.json",
+					"type": "Expression"
+				},
+				"folderPath": "data-zone/raw/stop_points",
+				"fileSystem": "tfl-dev"
+			}
+		},
+		"schema": {}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,24 @@
+{
+	"name": "ds_adls_line_status_json",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls_json",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Sink datasets"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "line_status.json",
+				"folderPath": "data-zone/raw/line_status",
+				"fileSystem": "tfl-dev"
+			}
+		},
+		"schema": {}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

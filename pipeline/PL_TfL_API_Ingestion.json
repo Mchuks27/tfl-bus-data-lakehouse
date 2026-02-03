@@ -1,0 +1,363 @@
+{
+	"name": "PL_TfL_API_Ingestion",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy_LineStatus_ToADLS",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_rest_line_status",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_adls_line_status_json",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Lookup_LineIds",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Copy_LineStatus_ToADLS",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "ds_adls_line_status_json",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach_BusArrivals",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup_LineIds",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@take(activity('Lookup_LineIds').output.value, 50)\n",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 5,
+					"activities": [
+						{
+							"name": "Copy_BusArrivals_ToADLS",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 3,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"paginationRules": {
+										"supportRFC5988": "true"
+									}
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"parallelCopies": 1
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_rest_arrivals",
+									"type": "DatasetReference",
+									"parameters": {
+										"BusId": {
+											"value": "@item().id",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_adls_arrivals_json",
+									"type": "DatasetReference",
+									"parameters": {
+										"ingestDate": {
+											"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+											"type": "Expression"
+										},
+										"hour": {
+											"value": "@formatDateTime(utcNow(), 'HH')",
+											"type": "Expression"
+										},
+										"busId": {
+											"value": "@item().id",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Handle_BusArrival_Failure",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Copy_BusArrivals_ToADLS",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_ErrorHandler",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ForEach_StopPoint",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@range(1, add(pipeline().parameters.maxPage, 1))",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Copy_StopPoints_ToADLS",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 3,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"paginationRules": {
+										"supportRFC5988": "true"
+									}
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"parallelCopies": 1
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_rest_stop_points",
+									"type": "DatasetReference",
+									"parameters": {
+										"page": {
+											"value": "@item()",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_adls_stop_points_json",
+									"type": "DatasetReference",
+									"parameters": {
+										"page": {
+											"value": "@item()",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Handle_StopPoints_Failure",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Copy_StopPoints_ToADLS",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_ErrorHandler",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "PL_ErrorHandler",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Copy_LineStatus_ToADLS",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_ErrorHandler",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "OnFailure_ForEach",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ForEach_BusArrivals",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
+						"activity": "ForEach_StopPoint",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_ErrorHandler",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"concurrency": 1,
+		"parameters": {
+			"maxPage": {
+				"type": "int",
+				"defaultValue": 5
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-02-03T12:41:10Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

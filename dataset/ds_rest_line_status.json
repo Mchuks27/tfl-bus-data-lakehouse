@@ -1,0 +1,19 @@
+{
+	"name": "ds_rest_line_status",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_rest_tfl",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Source datasets"
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": "https://api.tfl.gov.uk/Line/Mode/bus/Status"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

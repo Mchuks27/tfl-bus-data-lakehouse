@@ -1,0 +1,27 @@
+{
+	"name": "ds_rest_arrivals",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_rest_tfl",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"BusId": {
+				"type": "int"
+			}
+		},
+		"folder": {
+			"name": "Source datasets"
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "Line/@{dataset().BusId}/Arrivals",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

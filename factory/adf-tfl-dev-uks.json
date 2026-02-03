@@ -1,0 +1,9 @@
+{
+	"name": "adf-tfl-dev-uks",
+	"location": "uksouth",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "caae273c-1826-41ee-b241-aa670483bddd",
+		"tenantId": "22375461-03ae-40f7-b2a8-38b97f5994e8"
+	}
+}
